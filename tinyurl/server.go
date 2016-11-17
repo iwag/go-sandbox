@@ -6,12 +6,17 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/labstack/gommon/log"
+	"io"
+	"html/template"
 )
 
 type (
 	link struct {
 		Key string `json:"key"`
 		Link string `json:"link"`
+	}
+	Template struct {
+		templates *template.Template
 	}
 )
 
@@ -40,15 +45,26 @@ func CreateLink(c echo.Context) error {
 	return c.String(http.StatusOK, "shorten_link:" + key) // TODO
 }
 
+func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.templates.ExecuteTemplate(w, name, data)
+}
+
+func top(c echo.Context) error {
+	return c.Render(http.StatusOK, "top", "tinyurl")
+}
+
 func main() {
 	links = make(map[string]link)
 
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Welcome to tinyurl")
-	})
 	e.POST("/create", CreateLink)
 	e.GET("/:key", GetLink)
+
+	t := &Template{
+		templates: template.Must(template.ParseFiles("tmp/index.html")),
+	}
+	e.Renderer = t
+	e.GET("/", top)
 
 	if err := e.Start(":9000"); err != nil {
 		e.Logger.Fatal(err.Error())
