@@ -24,17 +24,17 @@ var (
 	links map[string]link
 )
 
-func GetLink(c echo.Context) error {
+func redirectToLink(c echo.Context) error {
 	key := c.Param("key")
 	l,e := links[key]
 	if e!=false {
-		return c.String(http.StatusOK, l.Link)
+		return c.Redirect(http.StatusMovedPermanently, l.Link)
 	} else {
 		return c.String(http.StatusNotFound, "not found")
 	}
 }
 
-func CreateLink(c echo.Context) error {
+func createLink(c echo.Context) error {
 	l := c.FormValue("link")
 	key :=  fmt.Sprintf("%x", md5.Sum([]byte(l)))
 	links[key] = link{
@@ -42,7 +42,7 @@ func CreateLink(c echo.Context) error {
 		Link: l,
 	}
 	log.Printf("shorten_link:" + key)
-	return c.String(http.StatusOK, "shorten_link:" + key) // TODO
+	return c.String(http.StatusOK, "http://localhost:9000/" + key) // TODO
 }
 
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
@@ -57,8 +57,8 @@ func main() {
 	links = make(map[string]link)
 
 	e := echo.New()
-	e.POST("/create", CreateLink)
-	e.GET("/:key", GetLink)
+	e.POST("/create", createLink)
+	e.GET("/:key", redirectToLink)
 
 	t := &Template{
 		templates: template.Must(template.ParseFiles("tmp/index.html")),
