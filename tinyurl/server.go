@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"io"
 	"html/template"
+	"time"
 )
 
 type (
@@ -15,15 +16,35 @@ type (
 )
 
 type LinkDb interface {
-	GetLink(key string) (string, error)
+	GetLink(string) (string, error)
 
 	AddLink(string) (string, error)
 
 	Close() error
 }
 
-var db LinkDb = linkDbMem{
-	links: make(map[string]string),
+var (
+	db LinkDb
+)
+
+func init() {
+	db = newDbMem()
+}
+
+func addContext(h echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if _, err := c.Cookie("username"); err != nil {
+			cookie := new(http.Cookie)
+			cookie.Name = "username"
+			cookie.Value = ""
+			cookie.Expires = time.Now().Add(24 * time.Hour)
+			log.Infof("set cookie: %s %v", cookie.Value, cookie.Expires)
+			c.SetCookie(cookie)
+			return h(c)
+		} else {
+			return h(c)
+		}
+	}
 }
 
 func redirectToLink(c echo.Context) error {
@@ -38,10 +59,20 @@ func redirectToLink(c echo.Context) error {
 
 func createLink(c echo.Context) error {
 	l := c.FormValue("link")
-	if 	key, err := db.AddLink(l); err != nil {
+	key, err := db.AddLink(l);
+	if err != nil {
 		log.Errorf("shorten_link: %s", key)
 		return c.NoContent(http.StatusNoContent)
 	} else {
+		cookie, err := c.Cookie("username")
+		if err != nil {
+			log.Error(err)
+		} else {
+			cookie.Value = cookie.Value + "," + key
+			log.Infof("load cookie: %s %v %v", cookie.Value, cookie.Expires, cookie.Raw)
+			c.SetCookie(cookie)
+		}
+
 		log.Printf("shorten_link:" + key)
 		return c.String(http.StatusOK, "http://localhost:9000/" + key) // TODO
 	}
@@ -57,6 +88,8 @@ func top(c echo.Context) error {
 
 func main() {
 	e := echo.New()
+	e.Use(addContext)
+
 	e.POST("/create", createLink)
 	e.GET("/:key", redirectToLink)
 

@@ -10,7 +10,13 @@ type linkDbMem struct{
 	links map[string]string
 }
 
-var _ LinkDb = &linkDbMem{}
+// var _ LinkDb = &linkDbMem{}
+
+func newDbMem() *linkDbMem {
+	return &linkDbMem{
+		links:  make(map[string]string),
+	}
+}
 
 func (db *linkDbMem) GetLink(key string) (string, error) {
 	l, err := db.links[key]
