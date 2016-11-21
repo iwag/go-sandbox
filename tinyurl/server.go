@@ -3,32 +3,34 @@ package main
 import (
 	"net/http"
 	"github.com/labstack/echo"
-	"crypto/md5"
-	"fmt"
 	"github.com/labstack/gommon/log"
 	"io"
 	"html/template"
 )
 
 type (
-	link struct {
-		Key string `json:"key"`
-		Link string `json:"link"`
-	}
 	Template struct {
 		templates *template.Template
 	}
 )
 
-var (
-	links map[string]link
-)
+type LinkDb interface {
+	GetLink(key string) (string, error)
+
+	AddLink(string) (string, error)
+
+	Close() error
+}
+
+var db LinkDb = linkDbMem{
+	links: make(map[string]string),
+}
 
 func redirectToLink(c echo.Context) error {
 	key := c.Param("key")
-	l,e := links[key]
-	if e!=false {
-		return c.Redirect(http.StatusMovedPermanently, l.Link)
+
+	if l,e := db.GetLink(key); e!=nil {
+		return c.Redirect(http.StatusMovedPermanently, l)
 	} else {
 		return c.String(http.StatusNotFound, "not found")
 	}
@@ -36,13 +38,13 @@ func redirectToLink(c echo.Context) error {
 
 func createLink(c echo.Context) error {
 	l := c.FormValue("link")
-	key :=  fmt.Sprintf("%x", md5.Sum([]byte(l)))
-	links[key] = link{
-		Key: key,
-		Link: l,
+	if 	key, err := db.AddLink(l); err != nil {
+		log.Errorf("shorten_link: %s", key)
+		return c.NoContent(http.StatusNoContent)
+	} else {
+		log.Printf("shorten_link:" + key)
+		return c.String(http.StatusOK, "http://localhost:9000/" + key) // TODO
 	}
-	log.Printf("shorten_link:" + key)
-	return c.String(http.StatusOK, "http://localhost:9000/" + key) // TODO
 }
 
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
@@ -54,8 +56,6 @@ func top(c echo.Context) error {
 }
 
 func main() {
-	links = make(map[string]link)
-
 	e := echo.New()
 	e.POST("/create", createLink)
 	e.GET("/:key", redirectToLink)
