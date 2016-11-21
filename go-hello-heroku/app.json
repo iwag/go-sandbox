@@ -1,0 +1,10 @@
+{
+	"name": "go hello heroku",
+	"description": "hello^^",
+	"image": "heroku/go:1.7",
+	"mount_dir": "src/github.com/iwag/go-sandbox/go-hello-heroku",
+	"website": "https://github.com/iwag/go-sandbox/go-hello-heroku",
+	"website": "http://github.com/heroku/go-getting-started",
+	"repository": "https://github.com/iwag/go-sandbox/go-hello-heroku"
+}
+
