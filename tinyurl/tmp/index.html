@@ -1,17 +1,16 @@
 {{define "top"}}
 <html>
 <head>
-    <title>Bookshelf - Go on Google Cloud Platform</title>
+    <title>tinyurl</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
 </head>
 <body>
 <h1>Welcome to {{.}}!</h1>
 <div class="container">
     <form method="post" enctype="multipart/form-data" action="/create">
         <div class="form-group">
-            <label for="link">Title</label>
+            <label for="link">url</label>
             <input class="form-control" name="link" id="link" value="">
         </div>
     </form>
