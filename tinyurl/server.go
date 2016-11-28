@@ -50,8 +50,8 @@ func addContext(h echo.HandlerFunc) echo.HandlerFunc {
 func redirectToLink(c echo.Context) error {
 	key := c.Param("key")
 
-	if l,e := db.GetLink(key); e!=nil {
 		return c.Redirect(http.StatusMovedPermanently, l)
+	if l,e := db.GetLink(key); e == nil {
 	} else {
 		return c.String(http.StatusNotFound, "not found")
 	}

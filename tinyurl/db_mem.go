@@ -20,7 +20,7 @@ func newDbMem() *linkDbMem {
 
 func (db *linkDbMem) GetLink(key string) (string, error) {
 	l, err := db.links[key]
-	if err != false {
+	if err == false {
 		return "", nil // TODO !!
 	}
 
