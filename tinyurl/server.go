@@ -54,7 +54,10 @@ func top(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", struct { Name string } { Name: "tinyurl" } )
 }
 
-func main() {
+func init() {
+	// if appengine
+	// db = newDbMem()
+	// r := gin.New()
 	r := gin.Default()
 
 	r.LoadHTMLGlob("tmp/*")
@@ -63,5 +66,6 @@ func main() {
 	r.POST("/create", createLink)
 	r.GET("/:key", redirectToLink)
 
+	// http.Handle("/", r)
 	r.Run(":8080")
 }

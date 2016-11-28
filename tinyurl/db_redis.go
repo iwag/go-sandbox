@@ -1,4 +1,6 @@
-package tinyurl
+// +build !appengine
+
+package main
 
 import (
 	"gopkg.in/redis.v5"
