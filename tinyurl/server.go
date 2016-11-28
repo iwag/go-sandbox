@@ -2,11 +2,9 @@ package main
 
 import (
 	"net/http"
-	"github.com/labstack/echo"
-	"github.com/labstack/gommon/log"
-	"io"
+	"gopkg.in/gin-gonic/gin.v1"
 	"html/template"
-	"time"
+	"log"
 )
 
 type (
@@ -31,75 +29,39 @@ func init() {
 	db = newDbMem()
 }
 
-func addContext(h echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		if _, err := c.Cookie("username"); err != nil {
-			cookie := new(http.Cookie)
-			cookie.Name = "username"
-			cookie.Value = ""
-			cookie.Expires = time.Now().Add(24 * time.Hour)
-			log.Infof("set cookie: %s %v", cookie.Value, cookie.Expires)
-			c.SetCookie(cookie)
-			return h(c)
-		} else {
-			return h(c)
-		}
-	}
-}
-
-func redirectToLink(c echo.Context) error {
+func redirectToLink(c *gin.Context) {
 	key := c.Param("key")
 
-		return c.Redirect(http.StatusMovedPermanently, l)
 	if l,e := db.GetLink(key); e == nil {
+		c.Redirect(http.StatusMovedPermanently, l)
 	} else {
-		return c.String(http.StatusNotFound, "not found")
+		c.String(http.StatusNotFound, "not found")
 	}
 }
 
-func createLink(c echo.Context) error {
-	l := c.FormValue("link")
+func createLink(c *gin.Context) {
+	l := c.PostForm("link")
 	key, err := db.AddLink(l);
 	if err != nil {
-		log.Errorf("shorten_link: %s", key)
-		return c.NoContent(http.StatusNoContent)
+		c.String(http.StatusNoContent, "not found")
 	} else {
-		cookie, err := c.Cookie("username")
-		if err != nil {
-			log.Error(err)
-		} else {
-			cookie.Value = cookie.Value + "," + key
-			log.Infof("load cookie: %s %v %v", cookie.Value, cookie.Expires, cookie.Raw)
-			c.SetCookie(cookie)
-		}
-
 		log.Printf("shorten_link:" + key)
-		return c.String(http.StatusOK, "http://localhost:9000/" + key) // TODO
+		c.String(http.StatusOK, "http://localhost:8080/" + key) // TODO
 	}
 }
 
-func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return t.templates.ExecuteTemplate(w, name, data)
-}
-
-func top(c echo.Context) error {
-	return c.Render(http.StatusOK, "top", "tinyurl")
+func top(c *gin.Context) {
+	c.HTML(http.StatusOK, "index.html", struct { Name string } { Name: "tinyurl" } )
 }
 
 func main() {
-	e := echo.New()
-	e.Use(addContext)
+	r := gin.Default()
 
-	e.POST("/create", createLink)
-	e.GET("/:key", redirectToLink)
+	r.LoadHTMLGlob("tmp/*")
 
-	t := &Template{
-		templates: template.Must(template.ParseFiles("tmp/index.html")),
-	}
-	e.Renderer = t
-	e.GET("/", top)
+	r.GET("/", top)
+	r.POST("/create", createLink)
+	r.GET("/:key", redirectToLink)
 
-	if err := e.Start(":9000"); err != nil {
-		e.Logger.Fatal(err.Error())
-	}
+	r.Run(":8080")
 }
