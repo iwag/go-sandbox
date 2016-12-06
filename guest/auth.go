@@ -5,19 +5,19 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-  "html/template"
+	"html/template"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 
 	"github.com/satori/go.uuid"
 	"google.golang.org/api/plus/v1"
-  "fmt"
+	"fmt"
 
-          "github.com/gorilla/sessions"
+	"github.com/gorilla/sessions"
 
 
-        	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/google"
 )
 
 const (
@@ -34,35 +34,29 @@ const (
 )
 
 var (
-        OAuthConfig *oauth2.Config
-        SessionStore sessions.Store
-
+	OAuthConfig *oauth2.Config
+	SessionStore sessions.Store
 )
-
-
 
 func init() {
 	// Gob encoding for gorilla/sessions
 	gob.Register(&oauth2.Token{})
 	gob.Register(&Profile{})
 
+  clientId := os.Getenv("CLIENT_SECRET")
+  clientSecret := os.Getenv("CLIENT_SECRET")
 
-  cookieStore := sessions.NewCookieStore([]byte("something-very-secret"))
-  cookieStore.Options = &sessions.Options{
-    HttpOnly: true,
-  }
-  SessionStore = cookieStore
+  OAuthConfig = configureOAuthClient(clientId, clientSecret)
 
-http.HandleFunc("/login", loginHandler)
-http.HandleFunc("/logout", logoutHandler)
-http.HandleFunc("/oauth2callback", oauthCallbackHandler)
+	cookieStore := sessions.NewCookieStore([]byte("something-very-secret"))
+	cookieStore.Options = &sessions.Options{
+		HttpOnly: true,
+	}
+	SessionStore = cookieStore
 
-  // r.Methods("GET").Path("/login").
-	// 	Handler(appHandler(loginHandler))
-	// r.Methods("POST").Path("/logout").
-	// 	Handler(appHandler(logoutHandler))
-	// r.Methods("GET").Path("/oauth2callback").
-	// 	Handler(appHandler(oauthCallbackHandler))
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/logout", logoutHandler)
+	http.HandleFunc("/oauth2callback", oauthCallbackHandler)
 }
 
 // loginHandler initiates an OAuth flow to authenticate the user.
@@ -88,8 +82,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request)  {
 	// Use the session ID for the "state" parameter.
 	// This protects against CSRF (cross-site request forgery).
 	// See https://godoc.org/golang.org/x/oauth2#Config.AuthCodeURL for more detail.
-	url := OAuthConfig.AuthCodeURL(sessionID, oauth2.ApprovalForce,
-		oauth2.AccessTypeOnline)
+	url := OAuthConfig.AuthCodeURL(sessionID, oauth2.ApprovalForce,	oauth2.AccessTypeOnline)
 	http.Redirect(w, r, url, http.StatusFound)
 	// return nil
 }
@@ -119,34 +112,34 @@ func validateRedirectURL(path string) (string, error) {
 func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) /* *appError */ {
 	oauthFlowSession, err := SessionStore.Get(r, r.FormValue("state"))
 	if err != nil {
-    fmt.Printf("invalid state parameter. try logging in again.")
+		fmt.Printf("invalid state parameter. try logging in again.")
 		return // appErrorf(err, "invalid state parameter. try logging in again.")
 	}
 
 	redirectURL, ok := oauthFlowSession.Values[oauthFlowRedirectKey].(string)
 	// Validate this callback request came from the app.
 	if !ok {
-    fmt.Printf("invalid state parameter. try logging in again. 2")
+		fmt.Printf("invalid state parameter. try logging in again. 2")
 		return // appErrorf(err, "invalid state parameter. try logging in again.")
 	}
 
 	code := r.FormValue("code")
 	tok, err := OAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
-    fmt.Printf("could not get auth token: %v", err)
+		fmt.Printf("could not get auth token: %v", err)
 		return // appErrorf(err, "could not get auth token: %v", err)
 	}
 
 	session, err := SessionStore.New(r, defaultSessionID)
 	if err != nil {
-    fmt.Printf("could not get default session: %v", err)
+		fmt.Printf("could not get default session: %v", err)
 		return // appErrorf(err, "could not get default session: %v", err)
 	}
 
 	ctx := context.Background()
 	profile, err := fetchProfile(ctx, tok)
 	if err != nil {
-    fmt.Printf("could not fetch Google profile: %v", err)
+		fmt.Printf("could not fetch Google profile: %v", err)
 		return // appErrorf(err, "could not fetch Google profile: %v", err)
 	}
 
@@ -154,7 +147,7 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) /* *appError *
 	// Strip the profile to only the fields we need. Otherwise the struct is too big.
 	session.Values[googleProfileSessionKey] = stripProfile(profile)
 	if err := session.Save(r, w); err != nil {
-    fmt.Printf("could not save session: %v", err)
+		fmt.Printf("could not save session: %v", err)
 		return // appErrorf(err, "could not save session: %v", err)
 	}
 
@@ -211,31 +204,6 @@ func profileFromSession(r *http.Request) *Profile {
 
 type appTemplate struct {
 	t *template.Template
-}
-
-func (tmpl *appTemplate) Execute(w http.ResponseWriter, r *http.Request, data interface{}) *appError {
-        d := struct {
-                Data        interface{}
-                AuthEnabled bool
-                Profile     *Profile
-                LoginURL    string
-                LogoutURL   string
-        }{
-                Data:        data,
-                AuthEnabled: OAuthConfig != nil,
-                LoginURL:    "/login?redirect=" + r.URL.RequestURI(),
-                LogoutURL:   "/logout?redirect=" + r.URL.RequestURI(),
-        }
-
-        if d.AuthEnabled {
-                // Ignore any errors.
-                d.Profile = profileFromSession(r)
-        }
-
-        if err := tmpl.t.Execute(w, d); err != nil {
-                return appErrorf(err, "could not write template: %v")
-        }
-        return nil
 }
 
 type Profile struct {
