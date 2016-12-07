@@ -16,8 +16,8 @@ import (
 
 	"github.com/gorilla/sessions"
 
-
 	"golang.org/x/oauth2/google"
+	"appengine/log"
 )
 
 const (
@@ -111,35 +111,36 @@ func validateRedirectURL(path string) (string, error) {
 // information and stores it in a session.
 func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) /* *appError */ {
 	oauthFlowSession, err := SessionStore.Get(r, r.FormValue("state"))
+	ctx := appengine.NewContext(r)
 	if err != nil {
-		fmt.Printf("invalid state parameter. try logging in again.")
+		log.Infof(ctx, "invalid state parameter. try logging in again.")
 		return // appErrorf(err, "invalid state parameter. try logging in again.")
 	}
 
 	redirectURL, ok := oauthFlowSession.Values[oauthFlowRedirectKey].(string)
 	// Validate this callback request came from the app.
 	if !ok {
-		fmt.Printf("invalid state parameter. try logging in again. 2")
+		log.Infof(ctx, "invalid state parameter. try logging in again. 2")
 		return // appErrorf(err, "invalid state parameter. try logging in again.")
 	}
 
 	code := r.FormValue("code")
 	tok, err := OAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		fmt.Printf("could not get auth token: %v", err)
+		log.Infof(ctx, "could not get auth token: %v", err)
 		return // appErrorf(err, "could not get auth token: %v", err)
 	}
 
 	session, err := SessionStore.New(r, defaultSessionID)
 	if err != nil {
-		fmt.Printf("could not get default session: %v", err)
+		log.Infof(ctx, "could not get default session: %v", err)
 		return // appErrorf(err, "could not get default session: %v", err)
 	}
 
 	ctx := context.Background()
 	profile, err := fetchProfile(ctx, tok)
 	if err != nil {
-		fmt.Printf("could not fetch Google profile: %v", err)
+		log.Infof(ctx, "could not fetch Google profile: %v", err)
 		return // appErrorf(err, "could not fetch Google profile: %v", err)
 	}
 
@@ -147,7 +148,7 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) /* *appError *
 	// Strip the profile to only the fields we need. Otherwise the struct is too big.
 	session.Values[googleProfileSessionKey] = stripProfile(profile)
 	if err := session.Save(r, w); err != nil {
-		fmt.Printf("could not save session: %v", err)
+		log.Infof(ctx, "could not save session: %v", err)
 		return // appErrorf(err, "could not save session: %v", err)
 	}
 
