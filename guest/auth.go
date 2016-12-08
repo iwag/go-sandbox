@@ -17,7 +17,9 @@ import (
 	"github.com/gorilla/sessions"
 
 	"golang.org/x/oauth2/google"
-	"appengine/log"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+	"os"
 )
 
 const (
@@ -43,7 +45,7 @@ func init() {
 	gob.Register(&oauth2.Token{})
 	gob.Register(&Profile{})
 
-  clientId := os.Getenv("CLIENT_SECRET")
+  clientId := os.Getenv("CLIENT_ID")
   clientSecret := os.Getenv("CLIENT_SECRET")
 
   OAuthConfig = configureOAuthClient(clientId, clientSecret)
@@ -125,7 +127,7 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) /* *appError *
 	}
 
 	code := r.FormValue("code")
-	tok, err := OAuthConfig.Exchange(context.Background(), code)
+	tok, err := OAuthConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Infof(ctx, "could not get auth token: %v", err)
 		return // appErrorf(err, "could not get auth token: %v", err)
@@ -137,7 +139,6 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) /* *appError *
 		return // appErrorf(err, "could not get default session: %v", err)
 	}
 
-	ctx := context.Background()
 	profile, err := fetchProfile(ctx, tok)
 	if err != nil {
 		log.Infof(ctx, "could not fetch Google profile: %v", err)
@@ -146,7 +147,10 @@ func oauthCallbackHandler(w http.ResponseWriter, r *http.Request) /* *appError *
 
 	session.Values[oauthTokenSessionKey] = tok
 	// Strip the profile to only the fields we need. Otherwise the struct is too big.
-	session.Values[googleProfileSessionKey] = stripProfile(profile)
+	stripped := stripProfile(profile)
+	log.Infof(ctx, "success! ", stripped)
+
+	session.Values[googleProfileSessionKey] = stripped
 	if err := session.Save(r, w); err != nil {
 		log.Infof(ctx, "could not save session: %v", err)
 		return // appErrorf(err, "could not save session: %v", err)
