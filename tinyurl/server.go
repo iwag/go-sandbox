@@ -14,9 +14,9 @@ type (
 )
 
 type LinkDb interface {
-	GetLink(string) (string, error)
+	GetLink(string, *http.Request) (string, error)
 
-	AddLink(string) (string, error)
+	AddLink(string, *http.Request) (string, error)
 
 	Close() error
 }
@@ -25,14 +25,16 @@ var (
 	db LinkDb
 )
 
+/*
 func init() {
-	db = newDbMem()
+	db = newDbCloud() //newDbMem()
 }
+*/
 
 func redirectToLink(c *gin.Context) {
 	key := c.Param("key")
 
-	if l,e := db.GetLink(key); e == nil {
+	if l,e := db.GetLink(key, c.Request); e == nil {
 		c.Redirect(http.StatusMovedPermanently, l)
 	} else {
 		c.String(http.StatusNotFound, "not found")
@@ -41,7 +43,7 @@ func redirectToLink(c *gin.Context) {
 
 func createLink(c *gin.Context) {
 	l := c.PostForm("link")
-	key, err := db.AddLink(l);
+	key, err := db.AddLink(l, c.Request);
 	if err != nil {
 		c.String(http.StatusNoContent, "not found")
 	} else {
@@ -55,6 +57,8 @@ func top(c *gin.Context) {
 }
 
 func init() {
+	db = newDbCloud() // newDbMem()
+
 	// if appengine
 	// db = newDbMem()
 	// r := gin.New()
@@ -66,6 +70,6 @@ func init() {
 	r.POST("/create", createLink)
 	r.GET("/:key", redirectToLink)
 
-	// http.Handle("/", r)
-	r.Run(":8080")
+	http.Handle("/", r)
+	//r.Run(":8080")
 }
