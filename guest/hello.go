@@ -1,13 +1,14 @@
 package main
 
 import (
-        "html/template"
-        "net/http"
-        "time"
+	"html/template"
+	"net/http"
+	"time"
+	"fmt"
 
-        "appengine"
-        "appengine/datastore"
-        "appengine/user"
+	"appengine"
+	"appengine/datastore"
+	"appengine/user"
 )
 
 // [START greeting_struct]
@@ -21,6 +22,7 @@ type Greeting struct {
 func init() {
         http.HandleFunc("/root", root)
         http.HandleFunc("/sign", sign)
+        http.HandleFunc("/welcome", welcome)
 }
 
 // guestbookKey returns the key used for all guestbook entries.
@@ -100,4 +102,17 @@ func sign(w http.ResponseWriter, r *http.Request) {
         }
         http.Redirect(w, r, "/", http.StatusFound)
         // [END if_user]
+}
+
+func welcome(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/html; charset=utf-8")
+	ctx := appengine.NewContext(r)
+	u := user.Current(ctx)
+	if u == nil {
+		url, _ := user.LoginURL(ctx, "/")
+		fmt.Fprintf(w, `<a href="%s">Sign in or register</a>`, url)
+		return
+	}
+	url, _ := user.LogoutURL(ctx, "/")
+	fmt.Fprintf(w, `Welcome, %s! (<a href="%s">sign out</a>)`, u, url)
 }
