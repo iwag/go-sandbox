@@ -3,35 +3,27 @@ package main
 import (
 	"encoding/gob"
 	"errors"
+	"os"
 	"net/http"
 	"net/url"
-	"html/template"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 
 	"github.com/satori/go.uuid"
-	"google.golang.org/api/plus/v1"
-	"fmt"
-
 	"github.com/gorilla/sessions"
 
-	"golang.org/x/oauth2/google"
+	"google.golang.org/api/plus/v1"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-	"os"
 )
 
 const (
 	defaultSessionID = "default"
-	// The following keys are used for the default session. For example:
-	//  session, _ := SessionStore.New(r, defaultSessionID)
-	//  session.Values[oauthTokenSessionKey]
 	googleProfileSessionKey = "google_profile"
 	oauthTokenSessionKey    = "oauth_token"
 
-	// This key is used in the OAuth flow session to store the URL to redirect the
-	// user to after the OAuth flow is complete.
 	oauthFlowRedirectKey = "redirect"
 )
 
@@ -45,10 +37,10 @@ func init() {
 	gob.Register(&oauth2.Token{})
 	gob.Register(&Profile{})
 
-  clientId := os.Getenv("CLIENT_ID")
-  clientSecret := os.Getenv("CLIENT_SECRET")
+	clientId := os.Getenv("CLIENT_ID")
+	clientSecret := os.Getenv("CLIENT_SECRET")
 
-  OAuthConfig = configureOAuthClient(clientId, clientSecret)
+	OAuthConfig = configureOAuthClient(clientId, clientSecret)
 
 	cookieStore := sessions.NewCookieStore([]byte("something-very-secret"))
 	cookieStore.Options = &sessions.Options{
@@ -207,10 +199,6 @@ func profileFromSession(r *http.Request) *Profile {
 	return profile
 }
 
-type appTemplate struct {
-	t *template.Template
-}
-
 type Profile struct {
 	ID, DisplayName, ImageURL string
 }
@@ -221,22 +209,6 @@ func stripProfile(p *plus.Person) *Profile {
 		ID:          p.Id,
 		DisplayName: p.DisplayName,
 		ImageURL:    p.Image.Url,
-	}
-}
-
-type appHandler func(http.ResponseWriter, *http.Request) *appError
-
-type appError struct {
-	Error   error
-	Message string
-	Code    int
-}
-
-func appErrorf(err error, format string, v ...interface{}) *appError {
-	return &appError{
-		Error:   err,
-		Message: fmt.Sprintf(format, v...),
-		Code:    500,
 	}
 }
 
