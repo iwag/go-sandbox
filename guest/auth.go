@@ -11,7 +11,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
-	"github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 
 	"google.golang.org/api/plus/v1"
@@ -55,7 +55,7 @@ func init() {
 
 // loginHandler initiates an OAuth flow to authenticate the user.
 func loginHandler(w http.ResponseWriter, r *http.Request)  {
-	sessionID := uuid.NewV4().String()
+	sessionID := uuid.NewUUID().String()
 
 	oauthFlowSession, err := SessionStore.New(r, sessionID)
 	if err != nil {

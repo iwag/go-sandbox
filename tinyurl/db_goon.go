@@ -8,6 +8,7 @@ import (
 	"github.com/mjibson/goon"
 	"google.golang.org/appengine/log"
 	"google.golang.org/appengine"
+	"github.com/google/uuid"
 )
 
 type Link struct {
@@ -44,8 +45,15 @@ func (db *linkDbGoon) GetLink(key string, r *http.Request) (string, error) {
 func (db *linkDbGoon) AddLink(l string, r *http.Request) (string, error) {
 	g := goon.NewGoon(r)
 	c := appengine.NewContext(r)
+
+	id, err := uuid.NewUUID()
+	if err != nil {
+		log.Infof(c, "%v", err)
+		return "", err
+	}
+
 	link := Link{
-		Id: "aa",
+		Id:      id.String(),
 		Content: l,
 		Date:    time.Now(),
 	}
