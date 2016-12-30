@@ -25,11 +25,9 @@ var (
 	db LinkDb
 )
 
-/*
-func init() {
-	db = newDbCloud() //newDbMem()
-}
-*/
+//func init() {
+//	db = newDbCloud() //newDbMem()
+//}
 
 func redirectToLink(c *gin.Context) {
 	key := c.Param("key")
@@ -57,7 +55,7 @@ func top(c *gin.Context) {
 }
 
 func init() {
-	db = newDbCloud() // newDbMem()
+	db = newDbGoon() // newDbCloud() // newDbMem()
 
 	// if appengine
 	// db = newDbMem()

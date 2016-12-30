@@ -7,28 +7,28 @@ import (
 	"net/http"
 	"github.com/mjibson/goon"
 	"google.golang.org/appengine/log"
-	"strconv"
+	"google.golang.org/appengine"
 )
 
 type Link struct {
-	Id string `datastore:"-" goon:"id"`
-	Content string `datastore:"Content,noindex"`
-	Date    time.Time `datastore:"startTime"`
+	Id      string `datastore:"-" goon:"id"`
+        Content string `datastore:"Content,noindex"`
+        Date    time.Time `datastore:"startTime"`
 }
 
-type linkDbGoon struct{
-	goon.Goon goon
+type linkDbGoon struct {
+	goon string
 }
 
 // var _ LinkDb = &linkDbCloud{}
 
-func newDbCloud(r *http.Request) *linkDbCloud {
-	g := goon.NewGoon(r)
-	return &linkDbCloud{goon: g}
+func newDbGoon() *linkDbGoon {
+	return &linkDbGoon{goon: ""}
 }
 
-func (db *linkDbCloud) GetLink(key string, r *http.Request) (string, error) {
+func (db *linkDbGoon) GetLink(key string, r *http.Request) (string, error) {
 	g := goon.NewGoon(r)
+	c := appengine.NewContext(r)
 
 	l := new(Link)
 	l.Id = key
@@ -41,21 +41,22 @@ func (db *linkDbCloud) GetLink(key string, r *http.Request) (string, error) {
 	return l.Content, nil
 }
 
-func (db *linkDbCloud) AddLink(l string, r *http.Request) (string, error) {
+func (db *linkDbGoon) AddLink(l string, r *http.Request) (string, error) {
 	g := goon.NewGoon(r)
-	l := Link{
+	c := appengine.NewContext(r)
+	link := Link{
 		Id: "aa",
 		Content: l,
 		Date:    time.Now(),
 	}
 
-	if _, err := g.Put(l); err != nil {
+	if _, err := g.Put(&link); err != nil {
 		log.Infof(c, "%v", err)
 		return "", err
 	}
-	return l.Id, nil
+	return link.Id, nil
 }
 
-func (db *linkDbCloud) Close() error {
+func (db *linkDbGoon) Close() error {
 	return nil
 }
